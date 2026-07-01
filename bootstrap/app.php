@@ -10,9 +10,18 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        //
+    ->withMiddleware(function (Middleware $middleware) {
+        // 1. Mengecualikan route webhook Midtrans dari blokir CSRF
+        $middleware->validateCsrfTokens(except: [
+            '/midtrans/callback', 
+        ]);
+
+        // 2. Mendaftarkan alias middleware 'admin' agar bisa dibaca oleh routes/web.php
+        // CATATAN: Pastikan Anda sudah membuat file Admin middleware (biasanya bernama IsAdmin, Admin, atau sejenisnya)
+        $middleware->alias([
+            'admin' => \App\Http\Middleware\Admin::class, // <-- Sesuaikan nama class middleware Admin Anda di sini
+        ]);
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();

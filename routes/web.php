@@ -21,7 +21,7 @@ Route::get('/login', function () {
 // ROUTE ADMIN AREA (Digabung menjadi satu)
 // ==========================================
 Route::prefix('admin')->name('admin.')->group(function () {
-    
+
     // Rute autentikasi (Bebas akses / Tanpa middleware)
     Route::get('login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('login', [AuthController::class, 'login'])->name('login.post');
@@ -30,11 +30,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Seluruh rute admin yang wajib login
     // Catatan: Jika memicu error lagi, ganti 'admin' dengan nama middleware kustom Anda yang benar
     Route::middleware(['auth', 'admin'])->group(function () {
-        
+
         // Dashboard & Transaksi
         Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('transactions', [TransactionController::class, 'index'])->name('transactions.index');
-        
+
         // Data Partner
         Route::get('partners', [PartnerController::class, 'index'])->name('partners.index');
         Route::get('partners/create', [PartnerController::class, 'create'])->name('partners.create');
@@ -69,4 +69,4 @@ Route::get('/payment/{order_id}', [CheckoutController::class, 'payment'])->name(
 Route::get('/success/{order_id}', [CheckoutController::class, 'success'])->name('checkout.success');
 
 // Webhook Midtrans
-Route::post('/midtrans/callback', [MidtransWebhookController::class, 'handle']);
+Route::match(['GET', 'POST'], '/midtrans/callback', [MidtransWebhookController::class, 'handle']);

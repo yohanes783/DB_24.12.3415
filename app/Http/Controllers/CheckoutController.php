@@ -47,7 +47,7 @@ class CheckoutController extends Controller
         ]);
 
         // --- INTEGRASI SNAP MIDTRANS ---
-        
+
         // Konfigurasi Kredensial Environment Midtrans
         \Midtrans\Config::$serverKey = env('MIDTRANS_SERVER_KEY');
         \Midtrans\Config::$isProduction = false; // Mode Sandbox!
@@ -55,6 +55,8 @@ class CheckoutController extends Controller
         \Midtrans\Config::$is3ds = true;
 
         // Susun Paket Array Data Transaksi
+        $notificationUrl = env('MIDTRANS_NOTIFICATION_URL') ?: rtrim(config('app.url'), '/') . '/midtrans/callback';
+
         $params = [
             'transaction_details' => [
                 'order_id'     => $orderId,
@@ -65,18 +67,19 @@ class CheckoutController extends Controller
                 'email'      => $request->customer_email,
                 'phone'      => $request->customer_phone,
             ],
+            'notification_url' => $notificationUrl,
         ];
 
         try {
             // Perintah Tembak Generate Snap Token
             $snapToken = \Midtrans\Snap::getSnapToken($params);
-            
+
             // Update rekaman kita bahwa transaksi terkait sudah memiliki id token pelunasan
             $transaction->update(['snap_token' => $snapToken]);
-            
+
             // Redirect ke halaman antarmuka pembayaran final pelanggan
             return redirect()->route('checkout.payment', $transaction->order_id);
-            
+
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memproses pembayaran jaringan: ' . $e->getMessage());
         }
@@ -97,14 +100,14 @@ class CheckoutController extends Controller
         $categories = \App\Models\Category::all();
 
         $transaction = Transaction::where('order_id', $order_id)->firstOrFail();
-         
+
         // Validasi status pembayaran asli dari Midtrans (Mencegah manipulasi URL)
         \Midtrans\Config::$serverKey = env('MIDTRANS_SERVER_KEY');
         \Midtrans\Config::$isProduction = false;
-         
+
         try {
             $midtransStatus = \Midtrans\Transaction::status($order_id);
-             
+
             // Hanya ubah status menjadi sukses jika Midtrans mengonfirmasi pembayaran lunas
             if (in_array($midtransStatus->transaction_status, ['capture', 'settlement'])) {
                 $transaction->update(['status' => 'success']);

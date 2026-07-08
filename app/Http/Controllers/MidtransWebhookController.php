@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class MidtransWebhookController extends Controller
 {
@@ -15,19 +16,21 @@ class MidtransWebhookController extends Controller
         $fraudStatus = $payload['fraud_status'] ?? null;
 
         if (!$orderId) {
-            return response()->json(['message' => 'Invalid payload'], 400);
+            Log::warning('Midtrans callback received without order_id', ['payload' => $payload]);
+            return response()->json(['message' => 'OK']);
         }
 
         // Mencari ID transaksi tersebut di database lokal kita
         $transaction = Transaction::with('event')->where('order_id', $orderId)->first();
 
         if (!$transaction) {
-            return response()->json(['message' => 'Transaction not found'], 404);
+            Log::warning('Midtrans callback received for unknown transaction', ['order_id' => $orderId]);
+            return response()->json(['message' => 'OK']);
         }
 
         // Cegah proses berulang jika status sudah lunas/sukses
         if ($transaction->status === 'settlement' || $transaction->status === 'success') {
-            return response()->json(['message' => 'Already processed']);
+            return response()->json(['message' => 'OK']);
         }
 
         // Logika Penerjemahan Status Midtrans API

@@ -11,6 +11,7 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MidtransWebhookController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\SocialiteController;
 
 // Pengalihan otomatis ke halaman login admin
 Route::get('/login', function () {
@@ -70,3 +71,7 @@ Route::get('/success/{order_id}', [CheckoutController::class, 'success'])->name(
 
 // Webhook Midtrans
 Route::match(['GET', 'POST'], '/midtrans/callback', [MidtransWebhookController::class, 'handle']);
+
+//Auth Google
+Route::get('auth/google', [SocialiteController::class, 'redirectToGoogle'])->name('auth.google');
+Route::get('auth/google/callback', [SocialiteController::class, 'handleGoogleCallback']);

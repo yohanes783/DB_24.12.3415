@@ -161,18 +161,33 @@
         } catch(e){}
     }
 
-    // Inisialisasi Scanner Kamera Belakang
+    // Inisialisasi Scanner Otomatis (Mendukung Kamera Laptop Webcam & HP Kamera Belakang)
     document.addEventListener("DOMContentLoaded", function () {
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader",
-            { 
-                fps: 10, 
-                qrbox: { width: 220, height: 220 },
-                facingMode: "environment"
-            },
-            false
-        );
-        html5QrcodeScanner.render(onScanSuccess);
+        Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length) {
+                // Gunakan kamera belakang jika ada (HP), jika tidak pakai kamera pertama yang ditemukan (Laptop Webcam)
+                let cameraId = devices[0].id;
+                for (let dev of devices) {
+                    if (dev.label.toLowerCase().includes('back') || dev.label.toLowerCase().includes('environment')) {
+                        cameraId = dev.id;
+                        break;
+                    }
+                }
+
+                const html5QrCode = new Html5Qrcode("reader");
+                html5QrCode.start(
+                    cameraId, 
+                    { fps: 10, qrbox: { width: 220, height: 220 } },
+                    onScanSuccess
+                ).catch(err => {
+                    console.error("Gagal memulai kamera:", err);
+                });
+            } else {
+                console.warn("Tidak ada perangkat kamera yang ditemukan.");
+            }
+        }).catch(err => {
+            console.error("Gagal mendapatkan daftar kamera:", err);
+        });
     });
 </script>
 @endsection

@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends('admin')
 @section('title', 'Kelola Event - Admin')
 @section('page_title', 'Kelola Event')
 @section('page_subtitle', 'Buat dan atur acara seru Anda di sini.')

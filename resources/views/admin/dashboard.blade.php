@@ -136,15 +136,14 @@
         </table>
     </div>
 </div>
-
 <!-- Library Chart.js CDN & Script Rendering -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // Fallback data agar tidak error jika variabel controller belum terkirim di Vercel
-        const labels = @json($chartMonths ?? ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']);
-        const userData = @json($userGrowthData ?? [0,0,0,0,0,0,0,0,0,0,0,0]);
-        const eventData = @json($eventGrowthData ?? [0,0,0,0,0,0,0,0,0,0,0,0]);
+        // PERBAIKAN: Memastikan format @json() dan array fallback tertutup dengan benar
+        const labels = {!! json_encode($chartMonths ?? ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']) !!};
+        const userData = {!! json_encode($userGrowthData ?? [0,0,0,0,0,0,0,0,0,0,0,0]) !!};
+        const eventData = {!! json_encode($eventGrowthData ?? [0,0,0,0,0,0,0,0,0,0,0,0]) !!};
 
         // 1. Render Grafik Pertumbuhan Pengguna
         const canvasUser = document.getElementById('userGrowthChart');

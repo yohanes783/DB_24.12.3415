@@ -6,7 +6,7 @@
 <section class="max-w-7xl mx-auto px-6 py-16 md:py-20 flex flex-col md:flex-row items-center gap-12">
     <div class="flex-1 space-y-8">
         <span class="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-bold uppercase tracking-wider">
-            #1 Event Platform Yogyakarta oke 
+            #1 Event Platform Yogyakarta 
         </span>
         <h1 class="text-4xl md:text-6xl font-extrabold leading-tight text-slate-900">
             Temukan & Pesan <span class="text-indigo-600">Tiket Event</span> Impianmu.

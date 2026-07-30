@@ -12,7 +12,7 @@ class AuthController extends Controller
      * Menampilkan halaman formulir login portal internal (Superadmin, Admin, & Partner).
      */
     public function showLogin() {
-        return view('admin.auth.login');
+        return view('auth.login');
     }
 
     /**
@@ -42,7 +42,7 @@ class AuthController extends Controller
                         $request->session()->regenerate();
                         return redirect()->route('partner.dashboard');
                     }
-                    
+
                     // Jika partner masih pending atau belum disetujui superadmin
                     $request->session()->regenerate();
                     return redirect()->route('partner.pending');

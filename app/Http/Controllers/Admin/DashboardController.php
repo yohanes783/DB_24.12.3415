@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Transaction;
+use App\Models\User; // Tambahkan Model User
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -25,6 +27,50 @@ class DashboardController extends Controller
         // 5. Menyertakan 5 daftar riwayat pesanan (History) paling mutakhir di panel
         $recentTransactions = Transaction::with('event')->latest()->take(5)->get();
 
-        return view('admin.dashboard', compact('totalRevenue', 'ticketsSold', 'activeEvents', 'pendingOrders', 'recentTransactions'));
+        // =========================================================================
+        // PENGEMBANGAN FITUR GRAFIK (SESUAI SOAL)
+        // =========================================================================
+
+        // 6. Query Pertumbuhan Pengguna Baru Per Bulan (Tahun Ini)
+        $userGrowthQuery = User::select(
+            DB::raw('MONTH(created_at) as month'),
+            DB::raw('COUNT(*) as total')
+        )
+        ->whereYear('created_at', date('Y'))
+        ->groupBy('month')
+        ->pluck('total', 'month')
+        ->toArray();
+
+        // 7. Query Pertumbuhan Penyelenggaraan Event Per Bulan (Tahun Ini)
+        $eventGrowthQuery = Event::select(
+            DB::raw('MONTH(created_at) as month'),
+            DB::raw('COUNT(*) as total')
+        )
+        ->whereYear('created_at', date('Y'))
+        ->groupBy('month')
+        ->pluck('total', 'month')
+        ->toArray();
+
+        // Mapping Data Bulan (Januari - Desember)
+        $chartMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        $userGrowthData = [];
+        $eventGrowthData = [];
+
+        for ($i = 1; $i <= 12; $i++) {
+            $userGrowthData[] = $userGrowthQuery[$i] ?? 0;
+            $eventGrowthData[] = $eventGrowthQuery[$i] ?? 0;
+        }
+
+        // Return ke view beserta variabel grafik baru
+        return view('admin.dashboard', compact(
+            'totalRevenue', 
+            'ticketsSold', 
+            'activeEvents', 
+            'pendingOrders', 
+            'recentTransactions',
+            'chartMonths',
+            'userGrowthData',
+            'eventGrowthData'
+        ));
     }
 }

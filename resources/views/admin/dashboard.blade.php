@@ -136,11 +136,12 @@
         </table>
     </div>
 </div>
+
 <!-- Library Chart.js CDN & Script Rendering -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // PERBAIKAN: Memastikan format @json() dan array fallback tertutup dengan benar
+        // PERBAIKAN: Menggunakan json_encode murni agar Blade Compiler tidak error
         const labels = {!! json_encode($chartMonths ?? ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']) !!};
         const userData = {!! json_encode($userGrowthData ?? [0,0,0,0,0,0,0,0,0,0,0,0]) !!};
         const eventData = {!! json_encode($eventGrowthData ?? [0,0,0,0,0,0,0,0,0,0,0,0]) !!};

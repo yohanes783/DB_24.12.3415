@@ -161,11 +161,11 @@
         } catch(e){}
     }
 
-    // Inisialisasi Scanner Otomatis (Mendukung Kamera Laptop Webcam & HP Kamera Belakang)
+    // Inisialisasi Scanner Otomatis dengan Sensitivitas Tinggi
     document.addEventListener("DOMContentLoaded", function () {
         Html5Qrcode.getCameras().then(devices => {
             if (devices && devices.length) {
-                // Gunakan kamera belakang jika ada (HP), jika tidak pakai kamera pertama yang ditemukan (Laptop Webcam)
+                // Pilih kamera belakang jika ada (untuk HP), jika tidak gunakan webcam utama (untuk Laptop)
                 let cameraId = devices[0].id;
                 for (let dev of devices) {
                     if (dev.label.toLowerCase().includes('back') || dev.label.toLowerCase().includes('environment')) {
@@ -175,18 +175,35 @@
                 }
 
                 const html5QrCode = new Html5Qrcode("reader");
+
+                // Konfigurasi performa scan
+                const scanConfig = { 
+                    fps: 20, // Kecepatan pembacaan frame dinaikkan agar lebih responsif
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        // Kotak scan dinamis menyesuaikan layar
+                        let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                        return {
+                            width: Math.floor(minEdge * 0.75),
+                            height: Math.floor(minEdge * 0.75)
+                        };
+                    },
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true // Gunakan pendeteksi hardware jika didukung browser
+                    }
+                };
+
                 html5QrCode.start(
                     cameraId, 
-                    { fps: 10, qrbox: { width: 220, height: 220 } },
+                    scanConfig,
                     onScanSuccess
                 ).catch(err => {
-                    console.error("Gagal memulai kamera:", err);
+                    console.error("Gagal menjalankan kamera:", err);
                 });
             } else {
                 console.warn("Tidak ada perangkat kamera yang ditemukan.");
             }
         }).catch(err => {
-            console.error("Gagal mendapatkan daftar kamera:", err);
+            console.error("Gagal mendapatkan izin/daftar kamera:", err);
         });
     });
 </script>

@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
-@section('page_title', 'Penjaga Pintu (Check-in Scanner Ultra)')
-@section('page_subtitle', 'Scan QR Code super cepat menggunakan Engine Bawaan Browser')
+@section('page_title', 'Penjaga Pintu (Check-in Scanner)')
+@section('page_subtitle', 'Scan QR Code tiket peserta di lokasi event untuk verifikasi otomatis')
 
 @section('content')
 <div class="max-w-xl mx-auto space-y-6">
@@ -9,42 +9,32 @@
     <!-- Card Scanner utama -->
     <div class="bg-white rounded-3xl p-6 shadow-xl border border-slate-100">
         
-        <!-- Header & Status -->
+        <!-- Live Status Badge -->
         <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
             <div class="flex items-center gap-2">
-                <span id="status-icon" class="w-3 h-3 rounded-full bg-slate-400"></span>
+                <span id="status-dot" class="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
                 <span id="status-text" class="text-xs font-bold text-slate-700 uppercase tracking-wider">Menyiapkan Kamera...</span>
             </div>
             <span class="text-xs bg-indigo-50 text-indigo-600 font-bold px-3 py-1 rounded-full border border-indigo-100">
-                Ultra Scan Engine
+                Anti Double-Entry
             </span>
         </div>
 
-        <!-- Container Video & Overlay -->
+        <!-- Frame Kamera Video Scanner -->
         <div class="relative w-full rounded-2xl overflow-hidden bg-slate-900 border-4 border-slate-900 shadow-inner" style="aspect-ratio: 4/3;">
-            <!-- Element Video Mentah -->
-            <video id="video" class="w-full h-full object-cover"></video>
+            <video id="video" class="w-full h-full object-cover" playsinline></video>
+            <canvas id="canvas" class="hidden"></canvas>
             
-            <!-- Overlay Bingkai Scan (CSS Pure) -->
-            <div class="absolute inset-0 flex items-center justify-center">
+            <!-- Overlay Bingkai Visual Scan -->
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div class="relative w-3/5 h-3/5 border-2 border-dashed border-white/50 rounded-2xl shadow-[0_0_0_400px_rgba(0,0,0,0.5)]">
-                    <!-- Sudut-sudut ikonik -->
                     <div class="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-500 rounded-tl-lg"></div>
                     <div class="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-500 rounded-tr-lg"></div>
                     <div class="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-500 rounded-bl-lg"></div>
                     <div class="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-500 rounded-br-lg"></div>
-                    
-                    <!-- Garis Laser Scanning -->
                     <div class="absolute top-0 left-0 right-0 h-1 bg-emerald-500 shadow-[0_0_10px_2px_#10b981] animate-scan-laser"></div>
                 </div>
             </div>
-        </div>
-
-        <!-- Tombol Kontrol (Opsional, muncul jika ada banyak kamera) -->
-        <div id="camera-controls" class="mt-4 hidden flex justify-center">
-            <button id="switch-camera" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold px-4 py-2 rounded-full border border-slate-200 flex items-center gap-2">
-                🔄 Ganti Kamera
-            </button>
         </div>
 
         <!-- Section Input Manual -->
@@ -62,9 +52,18 @@
             </div>
         </div>
     </div>
+
+    <!-- Informasi / Petunjuk Panitia -->
+    <div class="bg-slate-100 rounded-2xl p-4 text-xs text-slate-600 space-y-2 border border-slate-200">
+        <p class="font-bold text-slate-800">📌 Panduan Panitia Penjaga Pintu:</p>
+        <ul class="list-disc list-inside space-y-1">
+            <li>Arahkan kamera tepat ke QR Code tiket.</li>
+            <li>Sistem akan menolak secara otomatis jika tiket <b>sudah pernah di-scan</b>.</li>
+            <li>Gunakan fitur input manual jika layar HP peserta gelap/retak.</li>
+        </ul>
+    </div>
 </div>
 
-<!-- Tambahkan CSS untuk Animasi Laser -->
 <style>
     @keyframes scan-laser {
         0% { top: 0%; opacity: 0; }
@@ -78,99 +77,63 @@
     }
 </style>
 
-<!-- Hanya butuh SweetAlert2, library QR dibuang -->
+<!-- Library jsQR (Paling universal) & SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
     const video = document.getElementById('video');
-    const statusIcon = document.getElementById('status-icon');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const statusDot = document.getElementById('status-dot');
     const statusText = document.getElementById('status-text');
     const csrfToken = "{{ csrf_token() }}";
-    
+
     let isProcessing = false;
-    let scannerInterval = null;
-    let currentStream = null;
-    let barcodeDetector = null;
 
-    // --- JURUS PAMUNGKAS: Cek Dukungan BarcodeDetector API ---
-    async function checkBarcodeDetectorSupport() {
-        if (!('BarcodeDetector' in window)) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Browser Tidak Mendukung',
-                text: 'Browser Anda tidak mendukung Ultra Scan Engine. Gunakan Google Chrome versi terbaru.',
-            });
-            updateStatus('error', 'Browser Tidak Support');
-            return false;
-        }
+    // Awal pembukaan kamera
+    navigator.mediaDevices.getUserMedia({ 
+        video: { 
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+        } 
+    })
+    .then(stream => {
+        video.srcObject = stream;
+        video.setAttribute("playsinline", true);
+        video.play();
+        requestAnimationFrame(tick);
+        
+        statusDot.className = "w-3 h-3 rounded-full bg-emerald-500 animate-ping";
+        statusText.innerText = "Kamera Aktif - Siap Scan";
+    })
+    .catch(err => {
+        console.error("Akses Kamera Gagal:", err);
+        statusDot.className = "w-3 h-3 rounded-full bg-red-500";
+        statusText.innerText = "Kamera Tidak Diizinkan / Tidak Ada";
+    });
 
-        // Cek apakah format QR Code didukung oleh OS/Browser
-        const formats = await BarcodeDetector.getSupportedFormats();
-        if (!formats.includes('qr_code')) {
-            updateStatus('error', 'Format QR Tidak Didukung OS');
-            return false;
-        }
-
-        // Inisialisasi Detector murni untuk QR Code
-        barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-        return true;
-    }
-
-    // --- Fungsi Mulai Kamera Belakang (High Res) ---
-    async function startCamera() {
-        if(currentStream) {
-            currentStream.getTracks().forEach(track => track.stop());
-        }
-
-        updateStatus('loading', 'Membuka Kamera...');
-
-        const constraints = {
-            video: {
-                facingMode: 'environment', // Wajib Kamera Belakang
-                width: { ideal: 1280 },    // Minta Resolusi HD
-                height: { ideal: 720 }
-            }
-        };
-
-        try {
-            currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = currentStream;
-            video.setAttribute('playsinline', true); // Penting untuk iOS
-            await video.play();
+    // Loop Frame Decoder Ultra Fast
+    function tick() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA && !isProcessing) {
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            updateStatus('active', 'Kamera Aktif - Siap Scan');
-            startScanningLoop(); // Mulai loop pemindaian
-        } catch (err) {
-            console.error("Gagal akses kamera:", err);
-            updateStatus('error', 'Gagal Akses Kamera. Cek Izin Browser.');
-        }
-    }
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                inversionAttempts: "dontInvert",
+            });
 
-    // --- JURUS PAMUNGKAS: LOOP PEMINDAIAN ULTRA CEPAT ---
-    function startScanningLoop() {
-        if (scannerInterval) clearInterval(scannerInterval);
-
-        // Jalankan deteksi setiap 100ms (10 kali per detik) - Sangat responsif
-        scannerInterval = setInterval(async () => {
-            if (isProcessing || !barcodeDetector || video.readyState !== video.HAVE_ENOUGH_DATA) return;
-
-            try {
-                // Deteksi Barcode/QR langsung dari element Video murni
-                const barcodes = await barcodeDetector.detect(video);
-                
-                if (barcodes.length > 0) {
-                    const qrData = barcodes[0].rawValue; // Ambil teks mentah QR
-                    if (qrData) {
-                        onScanSuccess(qrData); // Kirim ke Backend
-                    }
-                }
-            } catch (err) {
-                // Abaikan error deteksi sementara
+            if (code && code.data && code.data.trim() !== "") {
+                onScanSuccess(code.data.trim());
             }
-        }, 100);
+        }
+        requestAnimationFrame(tick);
     }
 
-    // --- Fungsi Kirim ke Backend (Sama seperti dulu) ---
+    // Mengirim Data ke Backend Laravel
     function onScanSuccess(decodedText) {
         if (isProcessing) return;
         
@@ -194,81 +157,78 @@
             const data = res.body;
 
             if (res.status === 200) {
-                showResult('success', '✅ SILAKAN MASUK', data.data);
+                Swal.fire({
+                    icon: 'success',
+                    title: '✅ SILAKAN MASUK',
+                    html: `
+                        <div class="text-left bg-slate-50 p-4 rounded-xl mt-3 text-slate-800 text-sm space-y-1 border border-slate-200">
+                            <p><strong>Nama:</strong> ${data.data.name}</p>
+                            <p><strong>Event:</strong> ${data.data.event}</p>
+                            <p><strong>Order ID:</strong> ${data.data.order}</p>
+                            <p><strong>Waktu Masuk:</strong> ${data.data.time}</p>
+                        </div>
+                    `,
+                    confirmButtonText: 'Scan Berikutnya',
+                    confirmButtonColor: '#16a34a',
+                    allowOutsideClick: false
+                }).then(() => { isProcessing = false; });
+
             } else if (res.status === 422) {
-                showResult('error', '🚫 AKSES DITOLAK!', data.data, data.message);
+                Swal.fire({
+                    icon: 'error',
+                    title: '🚫 AKSES DITOLAK!',
+                    html: `
+                        <p class="text-red-600 font-bold mb-2">${data.message}</p>
+                        <div class="text-left bg-red-50 p-4 rounded-xl text-slate-800 text-sm space-y-1 border border-red-200">
+                            <p><strong>Pemilik Tiket:</strong> ${data.data?.name ?? '-'}</p>
+                            <p><strong>Event:</strong> ${data.data?.event ?? '-'}</p>
+                            <p><strong>Di-scan Pada:</strong> ${data.data?.used_at ?? '-'}</p>
+                        </div>
+                    `,
+                    confirmButtonText: 'Tolak Peserta Ini',
+                    confirmButtonColor: '#dc2626',
+                    allowOutsideClick: false
+                }).then(() => { isProcessing = false; });
+
             } else {
-                showResult('warning', '⚠️ TIKET TIDAK VALID', null, data.message);
+                Swal.fire({
+                    icon: 'warning',
+                    title: '⚠️ TIKET TIDAK VALID',
+                    text: data.message || 'Kode QR tidak terdaftar dalam sistem.',
+                    confirmButtonText: 'Coba Lagi',
+                    confirmButtonColor: '#f59e0b',
+                    allowOutsideClick: false
+                }).then(() => { isProcessing = false; });
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            showResult('error', 'Koneksi Terganggu', null, 'Pastikan internet aktif.');
-        });
-    }
-
-    // --- Helper UI ---
-    function updateStatus(type, text) {
-        statusText.innerText = text;
-        statusIcon.className = 'w-3 h-3 rounded-full ';
-        if (type === 'active') statusIcon.classList.add('bg-emerald-500', 'animate-ping');
-        else if (type === 'error') statusIcon.classList.add('bg-red-500');
-        else if (type === 'loading') statusIcon.classList.add('bg-amber-500', 'animate-pulse');
-        else statusIcon.classList.add('bg-slate-400');
-    }
-
-    function showResult(icon, title, data, message = '') {
-        let htmlContent = '';
-        if (data) {
-            htmlContent = `
-                <div class="text-left bg-slate-50 p-4 rounded-xl mt-3 text-slate-800 text-sm space-y-1 border border-slate-200">
-                    <p><strong>Nama:</strong> ${data.name || '-'}</p>
-                    <p><strong>Event:</strong> ${data.event || '-'}</p>
-                    <p><strong>Order ID:</strong> ${data.order || data.order_id || '-'}</p>
-                    ${data.time ? `<p><strong>Waktu:</strong> ${data.time}</p>` : ''}
-                    ${data.used_at ? `<p class="text-red-600"><strong>Di-scan Pada:</strong> ${data.used_at}</p>` : ''}
-                </div>`;
-        }
-        if (message && icon !== 'success') htmlContent = `<p class="text-red-600 font-bold mb-2">${message}</p>` + htmlContent;
-
-        Swal.fire({
-            icon: icon,
-            title: title,
-            html: htmlContent,
-            confirmButtonText: 'Scan Berikutnya',
-            confirmButtonColor: '#4f46e5',
-            allowOutsideClick: false
-            
-        }).then(() => {
-            isProcessing = false; // Buka kunci proses setelah pop-up ditutup
+            Swal.fire({
+                icon: 'error',
+                title: 'Koneksi Terganggu',
+                text: 'Pastikan koneksi internet aktif.',
+            }).then(() => { isProcessing = false; });
         });
     }
 
     function processManualInput() {
         const input = document.getElementById('manualCode');
-        const code = input.value.trim();
-        if (code !== '') {
+        if (input.value.trim() !== '') {
+            onScanSuccess(input.value.trim());
             input.value = '';
-            onScanSuccess(code);
         }
     }
 
     function playBeepSound() {
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            osc.frequency.setValueAtTime(800, ctx.currentTime);
-            osc.connect(ctx.destination);
-            osc.start(); osc.stop(ctx.currentTime + 0.1);
+            const ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctxAudio.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, ctxAudio.currentTime);
+            osc.connect(ctxAudio.destination);
+            osc.start();
+            osc.stop(ctxAudio.currentTime + 0.15);
         } catch(e){}
     }
-
-    // --- Jalankan Jurus Pamungkas saat halaman siap ---
-    document.addEventListener("DOMContentLoaded", async function () {
-        const supported = await checkBarcodeDetectorSupport();
-        if (supported) {
-            startCamera();
-        }
-    });
 </script>
 @endsection

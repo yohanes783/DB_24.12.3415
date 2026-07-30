@@ -14,7 +14,7 @@
             </svg>
         </div>
         <p class="text-slate-400 text-sm font-bold uppercase mb-1">Total Pendapatan</p>
-        <h3 class="text-2xl font-black">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</h3>
+        <h3 class="text-2xl font-black">Rp {{ number_format($totalRevenue ?? 0, 0, ',', '.') }}</h3>
     </div>
     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
         <div class="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-4">
@@ -25,7 +25,7 @@
             </svg>
         </div>
         <p class="text-slate-400 text-sm font-bold uppercase mb-1">Tiket Terjual</p>
-        <h3 class="text-2xl font-black">{{ number_format($ticketsSold, 0, ',', '.') }}</h3>
+        <h3 class="text-2xl font-black">{{ number_format($ticketsSold ?? 0, 0, ',', '.') }}</h3>
     </div>
     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
         <div class="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mb-4">
@@ -35,7 +35,7 @@
             </svg>
         </div>
         <p class="text-slate-400 text-sm font-bold uppercase mb-1">Event Aktif</p>
-        <h3 class="text-2xl font-black">{{ $activeEvents }} Event</h3>
+        <h3 class="text-2xl font-black">{{ $activeEvents ?? 0 }} Event</h3>
     </div>
     <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
         <div class="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mb-4">
@@ -45,12 +45,12 @@
             </svg>
         </div>
         <p class="text-slate-400 text-sm font-bold uppercase mb-1">Pesanan Pending</p>
-        <h3 class="text-2xl font-black">{{ $pendingOrders }} Pesanan</h3>
+        <h3 class="text-2xl font-black">{{ $pendingOrders ?? 0 }} Pesanan</h3>
     </div>
 </div>
 
 <!-- ========================================================================= -->
-<!-- SECTION FITUR GRAFIK PERTUMBUHAN (PENGEMBANGAN SESUAI SOAL) -->
+<!-- SECTION FITUR GRAFIK PERTUMBUHAN -->
 <!-- ========================================================================= -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
     <!-- Grafik 1: Pertumbuhan Pengguna -->
@@ -108,7 +108,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y border-t">
-                @forelse($recentTransactions as $trx)
+                @forelse($recentTransactions ?? [] as $trx)
                 <tr class="hover:bg-slate-50 transition">
                     <td class="px-8 py-6 text-sm text-slate-600 max-w-xs break-all">{{ $trx->created_at->format('d M y - H:i') }}<br><span class="text-xs text-slate-400">{{ $trx->order_id }}</span></td>
                     <td class="px-8 py-6">
@@ -141,79 +141,68 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const labels = @json($chartMonths);
-        const userData = @json($userGrowthData);
-        const eventData = @json($eventGrowthData);
+        // Fallback data agar tidak error jika variabel controller belum terkirim di Vercel
+        const labels = @json($chartMonths ?? ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']);
+        const userData = @json($userGrowthData ?? [0,0,0,0,0,0,0,0,0,0,0,0]);
+        const eventData = @json($eventGrowthData ?? [0,0,0,0,0,0,0,0,0,0,0,0]);
 
-        // 1. Render Grafik Pertumbuhan Pengguna (Line Chart)
-        const ctxUser = document.getElementById('userGrowthChart').getContext('2d');
-        new Chart(ctxUser, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Pengguna Baru',
-                    data: userData,
-                    borderColor: '#4f46e5', // Indigo-600
-                    backgroundColor: 'rgba(79, 70, 229, 0.08)',
-                    fill: true,
-                    tension: 0.35,
-                    borderWidth: 2.5,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#4f46e5'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+        // 1. Render Grafik Pertumbuhan Pengguna
+        const canvasUser = document.getElementById('userGrowthChart');
+        if (canvasUser) {
+            new Chart(canvasUser.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pengguna Baru',
+                        data: userData,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2.5,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#4f46e5'
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1, precision: 0 },
-                        grid: { color: '#f1f5f9' }
-                    },
-                    x: {
-                        grid: { display: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
                     }
                 }
-            }
-        });
+            });
+        }
 
-        // 2. Render Grafik Pertumbuhan Event (Bar Chart)
-        const ctxEvent = document.getElementById('eventGrowthChart').getContext('2d');
-        new Chart(ctxEvent, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Event Diselenggarakan',
-                    data: eventData,
-                    backgroundColor: '#16a34a', // Green-600
-                    borderRadius: 8,
-                    maxBarThickness: 32
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
+        // 2. Render Grafik Pertumbuhan Event
+        const canvasEvent = document.getElementById('eventGrowthChart');
+        if (canvasEvent) {
+            new Chart(canvasEvent.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Event Diselenggarakan',
+                        data: eventData,
+                        backgroundColor: '#16a34a',
+                        borderRadius: 8,
+                        maxBarThickness: 32
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1, precision: 0 },
-                        grid: { color: '#f1f5f9' }
-                    },
-                    x: {
-                        grid: { display: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
                     }
                 }
-            }
-        });
+            });
+        }
     });
 </script>
 @endsection

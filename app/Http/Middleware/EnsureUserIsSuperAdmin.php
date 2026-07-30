@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class AdminMiddleware
+class EnsureUserIsSuperAdmin
 {
     /**
      * Handle an incoming request.
@@ -15,10 +15,10 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::check() && (Auth::user()->role === 'admin' || Auth::user()->role === 'superadmin')) {
-            return $next($request);
-        }
+    if (auth()->check() && auth()->user()->role === 'superadmin') {
+        return $next($request);
+    }
 
-        abort(403, 'Akses khusus Admin & Superadmin.');
+    abort(403, 'Halaman ini hanya dapat diakses oleh Superadmin.');
     }
 }

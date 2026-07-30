@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Event; // WAJIB: Impor model Event agar database bisa diakses
+use App\Models\Event;
+use App\Models\Transaction; // <-- 1. TAMBAHKAN BARIS INI!
+use Illuminate\Support\Facades\Auth; // WAJIB: Impor model Event agar database bisa diakses
 
 class EventController extends Controller
 {
@@ -23,7 +25,18 @@ class EventController extends Controller
     }
 
     public function ticket()
-    {
-        return view('ticket');
-    }
+{
+    // Mengambil transaksi berdasarkan ID user yang login ATAU email yang cocok
+    $transactions = Transaction::with('event')
+        ->where(function ($query) {
+            $query->where('user_id', Auth::id())
+                  ->orWhere('customer_email', Auth::user()->email);
+        })
+        ->latest()
+        ->get();
+
+    $categories = \App\Models\Category::all();
+
+    return view('my-ticket', compact('transactions', 'categories'));
+}
 }

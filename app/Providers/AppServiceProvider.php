@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View; // <-- 1. Pastikan baris ini ada
 use App\Models\Category;             // <-- 2. Pastikan baris ini ada
+use Illuminate\Support\Facades\Schema;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // 3. Bagikan variabel $categories otomatis ke SELURUH file blade layout
+       if (Schema::hasTable('categories')) {
         View::share('categories', Category::all());
+    }
     }
 }

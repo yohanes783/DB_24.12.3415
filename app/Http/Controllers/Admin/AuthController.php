@@ -8,33 +8,69 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    // 1. Fungsi menampilkan halaman view formulir
+    /**
+     * Menampilkan halaman formulir login portal internal (Superadmin, Admin, & Partner).
+     */
     public function showLogin() {
-        return view('auth.login');
+        return view('admin.auth.login');
     }
 
-    // 2. Fungsi memproses validasi Submit Log In
+    /**
+     * Memproses autentikasi submit login dan mengarahkan sesuai Role.
+     */
     public function login(Request $request) {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'email'    => ['required', 'email'],
             'password' => ['required'],
         ]);
 
+        // 1. Coba Log in menggunakan email & password
         if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-            return redirect()->route('admin.dashboard'); // Arahkan ke rute dashboard
+            $user = Auth::user();
+
+            // 2. Arahkan pengguna ke dashboard masing-masing berdasarkan role
+            switch ($user->role) {
+                case 'superadmin':
+                case 'admin':
+                    // Keduanya diarahkan ke halaman dashboard admin yang sama
+                    $request->session()->regenerate();
+                    return redirect()->route('admin.dashboard');
+
+                case 'partner':
+                    // Cek status persetujuan partner
+                    if ($user->partner && $user->partner->status === 'approved') {
+                        $request->session()->regenerate();
+                        return redirect()->route('partner.dashboard');
+                    }
+                    
+                    // Jika partner masih pending atau belum disetujui superadmin
+                    $request->session()->regenerate();
+                    return redirect()->route('partner.pending');
+
+                default:
+                    // Jika role-nya hanya 'user' biasa, keluarkan dan tolak akses
+                    Auth::logout();
+                    return back()->withErrors([
+                        'email' => 'Akses ditolak! Halaman ini khusus untuk Pengelola Platform / Partner.',
+                    ]);
+            }
         }
 
+        // Jika kredensial email/password salah
         return back()->withErrors([
-            'email' => 'Email atau Password yang Anda berikan tidak terdaftar di database kami.',
+            'email' => 'Email atau Password yang Anda masukkan tidak sesuai.',
         ]);
     }
 
-    // 3. Fungsi memroses Log Out (Keluar)
+    /**
+     * Memproses Logout.
+     */
     public function logout(Request $request) {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/');
+
+        // Redirect kembali ke halaman login portal
+        return redirect()->route('admin.login');
     }
 }

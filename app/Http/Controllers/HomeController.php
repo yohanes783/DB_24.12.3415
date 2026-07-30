@@ -5,34 +5,45 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Event;
 use App\Models\Category;
-use App\Models\Partner; // Sudah terimpor dengan benar
+use App\Models\Partner;
+use App\Models\Review;
+use Carbon\Carbon;
 
 class HomeController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Ambil semua jenis kategori untuk tampilan filter tab button
+        // 1. Ambil semua kategori
         $categories = Category::all();
 
-        // [TAMBAHAN SOAL 4]: Ambil sekumpulan data Partner dari database
-        $partners = Partner::latest()->get();
+        // 2. Ambil partner yang berstatus 'approved'
+        $partners = Partner::where('status', 'approved')->latest()->get();
 
-        // 2. Buat kueri dasar untuk mengambil event:
-        $query = Event::with('category')
-                      ->where('date', '>=', now())
+        // 3. Ambil 6 ulasan terbaru
+        $reviews = Review::with(['user', 'event'])->latest()->take(6)->get();
+
+        // 4. Query Event: Tampilkan event buatan Admin (partner_id null) ATAU buatan Partner Approved
+        $query = Event::with(['category', 'partner'])
+                      ->where(function ($q) {
+                          $q->whereNull('partner_id') // Event dari Superadmin/Admin
+                            ->orWhereHas('partner', function ($p) {
+                                $p->where('status', 'approved'); // Event dari Partner Approved
+                            });
+                      })
+                      ->whereDate('date', '>=', Carbon::today()) // Hanya event hari ini & akan datang
                       ->orderBy('date', 'asc');
 
-        // 3. Filter query jika url memiliki parameter pencarian spesifik ?category=...
-        if ($request->has('category') && $request->category != '') {
+        // 5. Filter berdasarkan Kategori jika ada parameter (?category=slug)
+        if ($request->has('category') && !empty($request->category)) {
             $query->whereHas('category', function ($q) use ($request) {
                 $q->where('slug', $request->category);
             });
         }
 
-        // 4. Eksekusi query dan kirim data hasilnya ke template Blade
+        // 6. Eksekusi Query
         $events = $query->get();
 
-        // DIUBAH: Ditambahkan 'partners' ke dalam fungsi compact()
-        return view('welcome', compact('events', 'categories', 'partners'));
+        // 7. Render view 'welcome'
+        return view('welcome', compact('events', 'categories', 'partners', 'reviews'));
     }
 }

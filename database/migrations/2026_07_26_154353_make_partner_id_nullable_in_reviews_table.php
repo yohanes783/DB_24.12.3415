@@ -9,20 +9,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up()
+    public function up(): void
     {
-    Schema::table('users', function (Blueprint $table) {
-        $table->string('google_id')->nullable()->after('email');
-    });
+        Schema::table('reviews', function (Blueprint $table) {
+            //
+        });
     }
-
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('user', function (Blueprint $table) {
+        Schema::table('reviews', function (Blueprint $table) {
             //
         });
     }

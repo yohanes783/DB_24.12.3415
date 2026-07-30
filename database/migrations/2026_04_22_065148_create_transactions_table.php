@@ -13,16 +13,26 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('event_id')->constrained()->cascadeOnDelete();
-            $table->string('order_id')->unique(); // No Pesanan unik
+
+            // Relasi ke User Pembeli (Nullable jika mengizinkan guest checkout)
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+
+            // Relasi ke Partner/Penyelenggara (Kunci Analitik Pendapatan Tenant)
+            $table->foreignId('partner_id')->nullable()->constrained()->onDelete('cascade');
+            
+            // Relasi ke Event
+            $table->foreignId('event_id')->constrained('events')->cascadeOnDelete();
+
+            $table->string('order_id')->unique(); // ID Pesanan unik
             $table->string('customer_name');
             $table->string('customer_email');
             $table->string('customer_phone');
             $table->integer('total_price');
-            $table->string('status')->default('Pending');
+            $table->string('status')->default('pending'); // pending, success, failed, expired
             $table->string('snap_token')->nullable();
+
             $table->timestamps();
-            });
+        });
     }
 
     /**

@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
@@ -16,8 +13,17 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->string('role')->default('user');
+
+            // Password dibuat nullable jika nanti mendukung Login Google (Socialite)
+            $table->string('password')->nullable();
+
+            // Kolom pendukung login via Google
+            $table->string('google_id')->nullable();
+            $table->string('avatar')->nullable();
+
+            // Role user: 'user', 'partner', 'admin', 'superadmin'
+            $table->enum('role', ['user', 'partner', 'admin', 'superadmin'])->default('user');
+
             $table->rememberToken();
             $table->timestamps();
         });
@@ -38,9 +44,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('users');

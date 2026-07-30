@@ -14,33 +14,27 @@ if (!is_dir($storagePath . '/framework/views')) {
     mkdir($storagePath . '/bootstrap/cache', 0755, true);
 }
 
-// 2. OTOMATIS BUAT FILE SQLITE JIKA BELUM ADA
-$sqlitePath = '/tmp/database.sqlite';
-if (!file_exists($sqlitePath)) {
-    touch($sqlitePath);
-}
-
-// 3. Set environment variabel penting untuk Vercel
+// 2. Set environment variabel penting untuk Vercel
 putenv("APP_STORAGE_PATH={$storagePath}");
 putenv("VIEW_COMPILED_PATH={$storagePath}/framework/views");
-putenv("DB_CONNECTION=sqlite");
-putenv("DB_DATABASE={$sqlitePath}");
+putenv("APP_SERVICES_CACHE={$storagePath}/bootstrap/cache/services.php");
+putenv("APP_PACKAGES_CACHE={$storagePath}/bootstrap/cache/packages.php");
+putenv("APP_CONFIG_CACHE={$storagePath}/bootstrap/cache/config.php");
+putenv("APP_ROUTES_CACHE={$storagePath}/bootstrap/cache/routes.php");
 
 $_ENV['APP_STORAGE_PATH']   = $storagePath;
 $_ENV['VIEW_COMPILED_PATH'] = "{$storagePath}/framework/views";
-$_ENV['DB_CONNECTION']      = 'sqlite';
-$_ENV['DB_DATABASE']        = $sqlitePath;
 
-// 4. Load Composer Autoloader
+// 3. Load Composer Autoloader
 require __DIR__ . '/../vendor/autoload.php';
 
-// 5. Bootstrap Laravel Application
+// 4. Bootstrap Laravel Application
 $app = require_once __DIR__ . '/../bootstrap/app.php';
 
-// 6. Ubah Storage Path pada instance aplikasi
+// 5. Ubah Storage Path pada instance aplikasi Laravel
 $app->useStoragePath($storagePath);
 
-// 7. Jalankan Request melalui HTTP Kernel
+// 6. Jalankan Request melalui HTTP Kernel
 $kernel = $app->make(Kernel::class);
 
 $response = $kernel->handle(

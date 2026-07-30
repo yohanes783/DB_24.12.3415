@@ -12,7 +12,7 @@ class AuthController extends Controller
      * Menampilkan halaman formulir login portal internal (Superadmin, Admin, & Partner).
      */
     public function showLogin() {
-        return view('auth.login');
+        return view('admin.auth.login');
     }
 
     /**

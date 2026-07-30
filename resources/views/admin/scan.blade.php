@@ -21,9 +21,9 @@
         </div>
 
         <!-- Frame Kamera Video Scanner -->
-        <div id="reader" class="w-full rounded-2xl overflow-hidden bg-slate-900 min-h-[280px]"></div>
+        <div id="reader" class="w-full rounded-2xl overflow-hidden bg-slate-900 border border-slate-200"></div>
 
-        <!-- Section Input Manual (Jika Kamera Bermasalah) -->
+        <!-- Section Input Manual -->
         <div class="mt-6 pt-6 border-t border-slate-100">
             <label class="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">
                 Atau Ketik Order ID Secara Manual:
@@ -58,9 +58,8 @@
     let isProcessing = false;
     const csrfToken = "{{ csrf_token() }}";
 
-    // Fungsi utama ketika QR Code terdeteksi oleh kamera
     function onScanSuccess(decodedText, decodedResult) {
-        if (isProcessing) return; // Cegah ganda saat proses AJAX berlangsung
+        if (isProcessing) return;
         
         isProcessing = true;
         playBeepSound();
@@ -82,7 +81,6 @@
             const data = res.body;
 
             if (res.status === 200) {
-                // TIKET VALID & BELUM DIPAKAI
                 Swal.fire({
                     icon: 'success',
                     title: '✅ SILAKAN MASUK',
@@ -100,7 +98,6 @@
                 }).then(() => { isProcessing = false; });
 
             } else if (res.status === 422) {
-                // TIKET DOUBLE ENTRY / SUDAH DIPAKAI
                 Swal.fire({
                     icon: 'error',
                     title: '🚫 AKSES DITOLAK!',
@@ -118,7 +115,6 @@
                 }).then(() => { isProcessing = false; });
 
             } else {
-                // KODE TIDAK VALID / BELUM LUNAS
                 Swal.fire({
                     icon: 'warning',
                     title: '⚠️ TIKET TIDAK VALID',
@@ -139,7 +135,6 @@
         });
     }
 
-    // Input Manual Handler
     function processManualInput() {
         const input = document.getElementById('manualCode');
         if (input.value.trim() !== '') {
@@ -148,7 +143,6 @@
         }
     }
 
-    // Efek Suara Beep
     function playBeepSound() {
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -161,50 +155,19 @@
         } catch(e){}
     }
 
-    // Inisialisasi Scanner Otomatis dengan Sensitivitas Tinggi
+    // Menggunakan Engine Html5QrcodeScanner Bawaan yang Sangat Stabil
     document.addEventListener("DOMContentLoaded", function () {
-        Html5Qrcode.getCameras().then(devices => {
-            if (devices && devices.length) {
-                // Pilih kamera belakang jika ada (untuk HP), jika tidak gunakan webcam utama (untuk Laptop)
-                let cameraId = devices[0].id;
-                for (let dev of devices) {
-                    if (dev.label.toLowerCase().includes('back') || dev.label.toLowerCase().includes('environment')) {
-                        cameraId = dev.id;
-                        break;
-                    }
-                }
-
-                const html5QrCode = new Html5Qrcode("reader");
-
-                // Konfigurasi performa scan
-                const scanConfig = { 
-                    fps: 20, // Kecepatan pembacaan frame dinaikkan agar lebih responsif
-                    qrbox: function(viewfinderWidth, viewfinderHeight) {
-                        // Kotak scan dinamis menyesuaikan layar
-                        let minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-                        return {
-                            width: Math.floor(minEdge * 0.75),
-                            height: Math.floor(minEdge * 0.75)
-                        };
-                    },
-                    experimentalFeatures: {
-                        useBarCodeDetectorIfSupported: true // Gunakan pendeteksi hardware jika didukung browser
-                    }
-                };
-
-                html5QrCode.start(
-                    cameraId, 
-                    scanConfig,
-                    onScanSuccess
-                ).catch(err => {
-                    console.error("Gagal menjalankan kamera:", err);
-                });
-            } else {
-                console.warn("Tidak ada perangkat kamera yang ditemukan.");
-            }
-        }).catch(err => {
-            console.error("Gagal mendapatkan izin/daftar kamera:", err);
-        });
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader",
+            { 
+                fps: 15, 
+                qrbox: { width: 250, height: 250 },
+                rememberLastUsedCamera: true,
+                supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
+            },
+            /* verbose= */ false
+        );
+        html5QrcodeScanner.render(onScanSuccess);
     });
 </script>
 @endsection

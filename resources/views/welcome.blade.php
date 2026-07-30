@@ -6,7 +6,7 @@
 <section class="max-w-7xl mx-auto px-6 py-16 md:py-20 flex flex-col md:flex-row items-center gap-12">
     <div class="flex-1 space-y-8">
         <span class="inline-block px-4 py-1.5 bg-indigo-100 text-indigo-700 rounded-full text-sm font-bold uppercase tracking-wider">
-            #1 Event Platform
+            #1 Event Platform Yogyakarta
         </span>
         <h1 class="text-4xl md:text-6xl font-extrabold leading-tight text-slate-900">
             Temukan & Pesan <span class="text-indigo-600">Tiket Event</span> Impianmu.
@@ -23,7 +23,7 @@
             </a>
         </div>
     </div>
-    
+
     <div class="flex-1 relative w-full">
         <div class="absolute -top-10 -left-10 w-64 h-64 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
         <div class="absolute -bottom-10 -right-10 w-64 h-64 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -67,12 +67,12 @@
 
         <!-- Filter Tab Kategori -->
         <div class="flex flex-wrap gap-2">
-            <a href="{{ url()->current() }}" 
+            <a href="{{ url()->current() }}"
                class="px-4 py-2 rounded-xl text-sm font-bold transition {{ !request('category') ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                 Semua Kategori
             </a>
             @foreach($categories as $cat)
-                <a href="?category={{ $cat->slug }}" 
+                <a href="?category={{ $cat->slug }}"
                    class="px-4 py-2 rounded-xl text-sm font-bold transition {{ request('category') == $cat->slug ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
                     {{ $cat->name }}
                 </a>
@@ -89,12 +89,12 @@
                         <img src="{{ $event->poster_path ? asset('storage/' . $event->poster_path) : 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=600&q=80' }}"
                              alt="{{ $event->title }}"
                              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                        
+
                         <div class="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur rounded-lg text-xs font-bold uppercase text-indigo-600 shadow-sm">
                             {{ $event->category->name ?? 'Umum' }}
                         </div>
                     </div>
-                    
+
                     <div class="p-6">
                         <h3 class="text-xl font-bold mb-3 text-slate-800 group-hover:text-indigo-600 transition line-clamp-2">
                             {{ $event->title }}
@@ -204,7 +204,7 @@
             @endforeach
 
             <!-- Tombol Daftar Partner Baru -->
-            <a href="{{ route('partner.register') }}" 
+            <a href="{{ route('partner.register') }}"
                class="w-44 h-24 bg-white hover:bg-indigo-50/50 border-2 border-dashed border-indigo-200 hover:border-indigo-500 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 transition group cursor-pointer">
                 <div class="w-7 h-7 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg group-hover:scale-110 transition">
                     +

@@ -1,1 +1,3 @@
 *.sqlite*
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore

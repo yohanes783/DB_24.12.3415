@@ -76,30 +76,26 @@
                     </div>
                 </div>
 
+                <!-- SEKSI QR CODE ASLI (INTEGRASI SCANNER CHECK-IN) -->
                 <div class="bg-slate-100 p-6 rounded-3xl flex flex-col items-center">
                     <p class="text-slate-400 text-xs font-bold uppercase mb-4">Scan QR untuk Check-in</p>
-                    <!-- Visual Mock QR Code -->
-                    <div class="w-48 h-48 bg-white p-4 rounded-xl shadow-inner flex items-center justify-center">
-                        <div class="w-full h-full border-4 border-slate-900 flex flex-wrap p-1">
-                            <div class="w-1/4 h-1/4 bg-slate-900"></div>
-                            <div class="w-1/4 h-1/4 bg-white"></div>
-                            <div class="w-1/4 h-1/4 bg-slate-900"></div>
-                            <div class="w-1/4 h-1/4 bg-white"></div>
-                            <div class="w-1/4 h-1/4 bg-white"></div>
-                            <div class="w-1/4 h-1/4 bg-slate-900"></div>
-                            <div class="w-1/4 h-1/4 bg-white"></div>
-                            <div class="w-1/4 h-1/4 bg-slate-900"></div>
-                            <div class="w-1/4 h-1/4 bg-slate-900"></div>
-                            <div class="w-1/4 h-1/4 bg-white"></div>
-                            <div class="w-1/4 h-1/4 bg-slate-900"></div>
-                            <div class="w-1/4 h-1/4 bg-white"></div>
-                            <div class="w-1/4 h-1/4 bg-white"></div>
-                            <div class="w-1/4 h-1/4 bg-slate-900"></div>
-                            <div class="w-1/4 h-1/4 bg-white"></div>
-                            <div class="w-1/4 h-1/4 bg-slate-900"></div>
+                    
+                    @if(($transaction->is_used ?? false) || ($transaction->status_checkin ?? '') === 'used')
+                        <!-- Tampilan Jika Tiket Sudah Di-scan / Used -->
+                        <div class="w-full bg-red-100 border-2 border-red-300 text-red-700 p-6 rounded-2xl text-center space-y-1">
+                            <span class="text-3xl">🚫</span>
+                            <p class="font-black text-base uppercase tracking-wider">Tiket Sudah Digunakan</p>
+                            <p class="text-xs text-red-500 font-medium">Di-check-in pada: {{ $transaction->updated_at->format('d M Y, H:i') }} WIB</p>
                         </div>
-                    </div>
-                    <p class="mt-4 font-mono font-bold text-slate-800">{{ $transaction->order_id }}</p>
+                    @else
+                        <!-- QR Code Real Terintegrasi dengan Order ID -->
+                        <div class="p-3 bg-white rounded-2xl shadow-md border border-slate-200">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($transaction->order_id) }}" 
+                                 alt="QR Code Tiket {{ $transaction->order_id }}" 
+                                 class="w-48 h-48 object-contain">
+                        </div>
+                        <p class="mt-4 font-mono font-bold text-slate-800 tracking-wider text-sm">{{ $transaction->order_id }}</p>
+                    @endif
                 </div>
             </div>
 
@@ -148,7 +144,7 @@
                         </div>
                     @else
                         <!-- Form Isi Ulasan Bintang jika BELUM Memberi Ulasan -->
-                        <form action="{{ route('reviews.store', $transaction->event->id) }}" method="POST">
+                        <form action="{{ route('review.store', $transaction->event->id) }}" method="POST">
                             @csrf
                             <h3 class="font-bold text-lg text-slate-800 text-center mb-1">Bagaimana Acaranya?</h3>
                             <p class="text-xs text-slate-500 text-center mb-4">Berikan penilaian dan testimoni Anda untuk acara ini.</p>

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CheckInController; // Import CheckInController
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\EventController as EventAdminController;
 use App\Http\Controllers\Admin\PartnerController;
@@ -106,6 +107,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Global Dashboard & Transaksi Seluruh Platform
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::get('/transactions', [AdminTransactionController::class, 'index'])->name('transactions.index');
+
+        // Fitur Penjaga Pintu (Check-in QR Scanner)
+        Route::get('/scan', [CheckInController::class, 'index'])->name('scan.index');
+        Route::post('/scan/process', [CheckInController::class, 'process'])->name('scan.process');
 
         // Master Data Kategori Event
         Route::get('/category', [CategoryController::class, 'index'])->name('categories.index');
